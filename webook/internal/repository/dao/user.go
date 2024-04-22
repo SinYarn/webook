@@ -33,9 +33,9 @@ func (dao *UserDAO) Insert(ctx context.Context, u User) error {
 	// 错误码
 	err := dao.db.WithContext(ctx).Create(&u).Error
 	if mysqlErr, ok := err.(*mysql.MySQLError); ok {
-		// mysql 唯一索引错误码
+		// mysql 唯一索引错误码 ok: 确实是mysql的错误
 		const uniqueConflictsErrNo uint16 = 1062
-		if mysqlErr.Number == 1062 {
+		if mysqlErr.Number == uniqueConflictsErrNo {
 			// 邮箱冲突
 			return ErrUserDuplicateEmail
 		}
