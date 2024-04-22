@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"Clould/internal/domain"
-	"Clould/internal/repository/dao"
+	"Clould/webook/internal/domain"
+	"Clould/webook/internal/repository/dao"
 	"context"
 )
 

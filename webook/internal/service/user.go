@@ -1,8 +1,8 @@
 package service
 
 import (
-	"Clould/internal/domain"
-	"Clould/internal/repository"
+	"Clould/webook/internal/domain"
+	"Clould/webook/internal/repository"
 	"context"
 )
 

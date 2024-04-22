@@ -1,10 +1,10 @@
 package main
 
 import (
-	"Clould/internal/repository"
-	"Clould/internal/repository/dao"
-	"Clould/internal/service"
-	"Clould/internal/web"
+	"Clould/webook/internal/repository"
+	dao2 "Clould/webook/internal/repository/dao"
+	"Clould/webook/internal/service"
+	"Clould/webook/internal/web"
 	"strings"
 	"time"
 
@@ -40,7 +40,7 @@ func initDB() *gorm.DB {
 	}
 
 	// 数据库建表
-	err = dao.InitTable(db)
+	err = dao2.InitTable(db)
 	if err != nil {
 		// 建表不成功, 终止应用
 		panic(err)
@@ -85,7 +85,7 @@ func initWebServer() *gin.Engine {
 // 2. 初始化 DDD分层结构
 func initUser(db *gorm.DB) *web.UserHandler {
 	// DDD架构
-	ud := dao.NewUserDAO(db)
+	ud := dao2.NewUserDAO(db)
 	repo := repository.NewUserRepository(ud)
 	svc := service.NewUserService(repo)
 	// 预编译 正则表达式（邮箱、 密码匹配） -- 优化项目性能, 提高校验速度

@@ -1,8 +1,8 @@
 package web
 
 import (
-	"Clould/internal/domain"
-	"Clould/internal/service"
+	"Clould/webook/internal/domain"
+	"Clould/webook/internal/service"
 	"fmt"
 	"net/http"
 
