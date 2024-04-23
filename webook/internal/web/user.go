@@ -96,6 +96,7 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 		Email:    req.Email,
 		Password: req.Password,
 	})
+	// 最佳实现 errors.Is(err, service.ErrUserDuplicateEmail)
 	if err == service.ErrUserDuplicateEmail {
 		ctx.String(http.StatusOK, "邮箱冲突")
 		return
@@ -110,14 +111,35 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 	return
 }
 
-func (h *UserHandler) Login(ctx *gin.Context) {
+func (u *UserHandler) Login(ctx *gin.Context) {
+	type LoginReq struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	// bind 获取登录的参数
+	var req LoginReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	err := u.svc.Login(ctx, req.Email, req.Password)
+	if err == service.ErrInvalidUserOrPassword {
+		ctx.String(http.StatusOK, "用户名或者密码不对")
+		return
+	}
+	if err != nil {
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+
+	ctx.String(http.StatusOK, "Login Succeed")
+	return
+}
+
+func (u *UserHandler) Edit(ctx *gin.Context) {
 
 }
 
-func (h *UserHandler) Edit(ctx *gin.Context) {
-
-}
-
-func (h *UserHandler) Profile(ctx *gin.Context) {
+func (u *UserHandler) Profile(ctx *gin.Context) {
 
 }
