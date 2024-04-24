@@ -52,18 +52,12 @@ func (r *UserRepository) Create(ctx context.Context, u domain.User) error {
 	})
 }
 
-func (f *FileRepository) FileUploadFinsh(ctx context.Context,
-	username string,
-	filehash string,
-	filename string,
-	filesize int64,
-) error {
-	return f.dao.FileUploadFinsh(ctx, dao.File{
-		UserId:   0,
-		Username: username,
-		Filename: filename,
-		Filehash: filehash,
-		Filesize: filesize,
+func (r *FileRepository) Upload(ctx context.Context, u domain.File) error {
+	return r.dao.Upload(ctx, dao.File{
+		UserId:     u.UserId,
+		Filename:   u.Filename,
+		Filesize:   u.Filesize,
+		UploadPath: u.UploadPath,
 	})
 }
 

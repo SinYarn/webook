@@ -4,7 +4,9 @@ import (
 	"Clould/webook/internal/domain"
 	"Clould/webook/internal/service"
 	"fmt"
+	"math"
 	"net/http"
+	"os"
 
 	"github.com/gin-contrib/sessions"
 
@@ -19,9 +21,7 @@ type UserHandler struct {
 }
 
 type FileHandler struct {
-	svc            *service.FileService
-	emailRexExp    *regexp.Regexp
-	passwordRexExp *regexp.Regexp
+	svc *service.FileService
 }
 
 func NewUserHandler(svc *service.UserService) *UserHandler {
@@ -42,9 +42,11 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 	}
 }
 
-func NewFileHandler(svc *service.UserService) *FileHandler {
+func NewFileHandler(svc *service.FileService) *FileHandler {
 
-	return &FileHandler{}
+	return &FileHandler{
+		svc: svc,
+	}
 }
 
 func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
@@ -61,6 +63,89 @@ func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug.POST("/edit", h.Edit)
 	// GET /users/profile
 	ug.GET("/profile", h.Profile)
+}
+
+func (f *FileHandler) FileRoutes(server *gin.Engine) {
+	// REST 风格
+	//server.POST("/user", h.SignUp)
+	//server.PUT("/user", h.SignUp)
+	//server.GET("/users/:username", h.Profile)
+	ug := server.Group("/files")
+	// POST /users/signup
+	ug.POST("/upload", f.Upload)
+	ug.GET("/download", f.Download)
+	server.LoadHTMLFiles("list.html")
+	ug.GET("/list", func(c *gin.Context) {
+		// 渲染并返回 HTML 页面
+		c.HTML(http.StatusOK, "list.html", nil)
+	})
+}
+
+func (f *FileHandler) List(ctx *gin.Context) {
+	//ctx.String(http.StatusOK, "LIST succeed")
+	ctx.HTML(http.StatusOK, "list.html", nil)
+}
+
+func (u *FileHandler) Upload(ctx *gin.Context) {
+	// 从请求中获取上传的文件
+
+	file, err := ctx.FormFile("file")
+	sess := sessions.Default(ctx)
+	userId := sess.Get("userId")
+
+	var uid int64
+	if id, ok := userId.(int64); ok {
+		fmt.Printf("id: %d\n", userId)
+		uid = id
+	} else {
+		ctx.JSON(http.StatusOK, gin.H{"message": "用户session id错误"})
+		return
+	}
+
+	if userId == nil {
+		ctx.AbortWithStatus(http.StatusUnauthorized) // 返回 401(未授权) 错误码
+		return
+	}
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	// 将上传的文件保存到服务器
+	dst := fmt.Sprintf("./uploads/%s", file.Filename)
+	if err := ctx.SaveUploadedFile(file, dst); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "文件保存失败"})
+		return
+	}
+
+	err = u.svc.Upload(ctx, domain.File{
+		UserId:     int64(uid),
+		Username:   "1@qq.com",
+		Filename:   file.Filename,
+		Filesize:   int64(math.Ceil((float64(file.Size)) / (1024 * 1024))),
+		UploadPath: dst,
+		Filehash:   "o",
+	})
+	if err != nil {
+		ctx.JSON(http.StatusOK, gin.H{"message": "文件上传失败"})
+	}
+	ctx.JSON(http.StatusOK, gin.H{"message": "文件上传成功"})
+}
+
+func (u *FileHandler) Download(ctx *gin.Context) {
+	taskID := ctx.DefaultQuery("taskID", "0")
+	filepath := "./uploads/" + taskID
+
+	// 检查文件是否存在
+	_, err := os.Stat(filepath)
+	if os.IsNotExist(err) {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "文件不存在"})
+		return
+	}
+
+	// 设置响应头，告诉浏览器这是一个要下载的文件
+	ctx.Header("Content-Disposition", "attachment; filename="+taskID)
+	ctx.Header("Content-Type", "application/octet-stream")
+	ctx.File(filepath)
 }
 
 func (u *UserHandler) SignUp(ctx *gin.Context) {

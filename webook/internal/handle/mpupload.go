@@ -2,10 +2,17 @@ package handle
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
+	"gorm.io/driver/mysql"
+
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-gonic/gin"
+
+	"gorm.io/gorm"
+
 	rPool "Clould/webook/internal/repository/cache/redis"
-	"Clould/webook/internal/repository/dao"
 	"math"
 	"net/http"
 	"os"
@@ -68,7 +75,9 @@ func UploadPartHandler(w http.ResponseWriter, r *http.Request) {
 	defer rConn.Close()
 
 	// 3. 获取文件句柄, 用于存储文件分块内容
-	fd, err := os.Create("/data/" + uploadId + "/" + chunkIndex)
+	fpath := "/data/" + uploadId + "/" + chunkIndex
+	os.MkdirAll(path.Dir(fpath), 0744)
+	fd, err := os.Create(fpath)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -90,8 +99,8 @@ func UploadPartHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// 通知上床合并接口
-func CompleteMultipartUploadHandler(w http.ResponseWriter, r *http.Request) {
+// 通知上传合并接口
+func CompleteMultipartUploadHandler(w http.ResponseWriter, r *http.Request, ctx *gin.Context) {
 	// 1. 解析请求参数
 	r.ParseForm()
 	upId := r.Form.Get("uploadid")
@@ -131,6 +140,46 @@ func CompleteMultipartUploadHandler(w http.ResponseWriter, r *http.Request) {
 	// 4. TODO: 合并分块
 
 	// 5. 更新唯一文件表以及用户表
-	dao.
+	FileUploadFinsh(ctx, userName, fileHash, filename, int64(fileSize))
 	// 6. 响应处理结果
+	w.WriteHeader(http.StatusOK)
+}
+
+func FileUploadFinsh(ctx *gin.Context, username string, filehash string, filename string, filesize int64) {
+	db, err := gorm.Open(mysql.Open("root:root@tcp(localhost:13316)/webook"))
+	if err != nil {
+		panic("无法连接到数据库")
+	}
+	now := time.Now().UnixMilli()
+	session := sessions.Default(ctx)
+	userID := session.Get("userId")
+	userIDInt, err := strconv.ParseInt(userID.(string), 10, 64)
+	if err != nil {
+	}
+	file := File{
+		UserId:   userIDInt,
+		Username: username,
+		Filename: filename,
+		Filehash: filehash,
+		Filesize: filesize,
+		Ctime:    now,
+		Utime:    now,
+	}
+	err = db.Create(&file).Error
+	if err != nil {
+		return
+	}
+}
+
+type File struct {
+	Id       int64 `gorm:"primarykey, autoIncrement"`
+	UserId   int64
+	Username string
+	Filename string
+	Filehash string
+	Filesize int64
+	// 创建时间, 毫秒数
+	Ctime int64
+	// 更新时间, 毫秒数
+	Utime int64
 }

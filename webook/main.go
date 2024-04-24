@@ -26,7 +26,9 @@ func main() {
 	server := initWebServer()
 	// 3. 初始化 DDD分层结构
 	u := initUser(db)
+	f := initFile(db)
 	// 4. 注册分组路由
+	f.FileRoutes(server)
 	u.RegisterRoutes(server)
 
 	// 监听并在 0.0.0.0:8080 上启动服务
@@ -56,7 +58,7 @@ func initDB() *gorm.DB {
 // 2. 初始化web服务
 func initWebServer() *gin.Engine {
 	server := gin.Default()
-
+	//server.Static("/webook/template", "./html")
 	// middleware中间件, 在request之前执行
 	server.Use(func(ctx *gin.Context) {
 		println("这是第一个middleware")
@@ -120,5 +122,16 @@ func initUser(db *gorm.DB) *web.UserHandler {
 	svc := service.NewUserService(repo)
 	// 预编译 正则表达式（邮箱、 密码匹配） -- 优化项目性能, 提高校验速度
 	u := web.NewUserHandler(svc)
+	return u
+}
+
+// 2. 初始化 DDD分层结构
+func initFile(db *gorm.DB) *web.FileHandler {
+	// DDD架构
+	ud := dao2.NewFileDAO(db)
+	repo := repository.NewFileRepository(ud)
+	svc := service.NewFileService(repo)
+	// 预编译 正则表达式（邮箱、 密码匹配） -- 优化项目性能, 提高校验速度
+	u := web.NewFileHandler(svc)
 	return u
 }

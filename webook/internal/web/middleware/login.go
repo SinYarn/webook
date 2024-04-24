@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-contrib/sessions"
@@ -48,6 +49,7 @@ func (l *LoginMiddlewareBuilder) Build() gin.HandlerFunc {
 			}
 		*/
 		id := sess.Get("userId")
+		fmt.Printf("id: %d\n", id)
 		// 没有获取到id
 		if id == nil {
 			// 没有登录

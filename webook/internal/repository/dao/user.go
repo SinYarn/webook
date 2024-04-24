@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"time"
 
@@ -60,7 +61,7 @@ func (dao *UserDAO) Insert(ctx context.Context, u User) error {
 	return err
 }
 
-func (dao *FileDAO) FileUploadFinsh(ctx context.Context, f File) error {
+func (dao *FileDAO) Upload(ctx context.Context, f File) error {
 	// 存毫秒数
 	now := time.Now().UnixMilli()
 	f.Utime = now
@@ -85,7 +86,15 @@ type User struct {
 	Id       int64  `gorm:"primarykey, autoIncrement"`
 	Email    string `gorm:"unique"`
 	Password string
-	Username string
+	Nickname string `gorm:"type=varchar(128)"`
+	// YYYY-MM-DD
+	Birthday int64
+	AboutMe  string `gorm:"type=varchar(4096)"`
+
+	// 代表这是一个可以为 NULL 的列
+	Phone    sql.NullString `gorm:"unique"`
+	FileName string
+	FileId   int64
 	// 创建时间, 毫秒数
 	Ctime int64
 	// 更新时间, 毫秒数
@@ -93,12 +102,13 @@ type User struct {
 }
 
 type File struct {
-	Id       int64 `gorm:"primarykey, autoIncrement"`
-	UserId   int64
-	Username string
-	Filename string
-	Filehash string
-	Filesize int64
+	Id         int64 `gorm:"primarykey, autoIncrement"`
+	UserId     int64
+	Username   string
+	Filename   string
+	Filehash   string
+	Filesize   int64
+	UploadPath string
 	// 创建时间, 毫秒数
 	Ctime int64
 	// 更新时间, 毫秒数
