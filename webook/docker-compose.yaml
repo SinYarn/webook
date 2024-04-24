@@ -13,6 +13,13 @@ services:
     ports:
       # 映射docker 13316端口 物理机 : docker
       - "13316:3306"
+  redis:
+    image: "bitnami/redis:latest"
+    restart: always
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - '6379:6379'
 
 ## 我这个 docker compose 由几个服务组成
 #services:

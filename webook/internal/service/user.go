@@ -22,24 +22,24 @@ func NewUserService(repo *repository.UserRepository) *UserService {
 	}
 }
 
-func (svc *UserService) Login(ctx context.Context, email string, password string) error {
+func (svc *UserService) Login(ctx context.Context, email string, password string) (domain.User, error) {
 	// 通过邮箱查mysql的密码
 	u, err := svc.repo.FindByEmail(ctx, email)
 	if err == repository.ErrUserNotFound {
 		// 邮箱不存在
-		return ErrInvalidUserOrPassword
+		return domain.User{}, ErrInvalidUserOrPassword
 	}
 	if err != nil {
 		// 数据库超时
-		return err
+		return domain.User{}, err
 	}
 	// 比较密码    加密后 : 前端传过来
 	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	if err != nil {
 		// DEBUG 账号密码不匹配
-		return ErrInvalidUserOrPassword
+		return domain.User{}, ErrInvalidUserOrPassword
 	}
-	return err
+	return u, nil
 }
 
 // Create

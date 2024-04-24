@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gin-contrib/sessions"
+
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
 )
@@ -122,7 +124,7 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 	if err := ctx.Bind(&req); err != nil {
 		return
 	}
-	err := u.svc.Login(ctx, req.Email, req.Password)
+	user, err := u.svc.Login(ctx, req.Email, req.Password)
 	if err == service.ErrInvalidUserOrPassword {
 		ctx.String(http.StatusOK, "用户名或者密码不对")
 		return
@@ -131,6 +133,14 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "系统错误")
 		return
 	}
+
+	// 登录校验模块步骤2: 写入session的userID
+	// 在这里登录成功了
+	// 设置session 拿到session
+	sess := sessions.Default(ctx)
+	// 设置session的值, 放在session中
+	sess.Set("userId", user.Id)
+	sess.Save() // 保存 session 到 cookie中 (响应header中可以看到)
 
 	ctx.String(http.StatusOK, "Login Succeed")
 	return
@@ -141,5 +151,5 @@ func (u *UserHandler) Edit(ctx *gin.Context) {
 }
 
 func (u *UserHandler) Profile(ctx *gin.Context) {
-
+	ctx.String(http.StatusOK, "这是你的Profile")
 }

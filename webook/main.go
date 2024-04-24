@@ -5,13 +5,17 @@ import (
 	dao2 "Clould/webook/internal/repository/dao"
 	"Clould/webook/internal/service"
 	"Clould/webook/internal/web"
+	"Clould/webook/internal/web/middleware"
 	"strings"
 	"time"
+
+	"github.com/gin-contrib/sessions/redis"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -79,6 +83,34 @@ func initWebServer() *gin.Engine {
 		},
 		MaxAge: 12 * time.Hour,
 	}))
+
+	// 方式1: 使用cookie
+	// 登录校验模块: 初始化
+	// 登录校验模块步骤1: 生成session, 放在cookie里
+	//store := cookie.NewStore([]byte("secret"))
+
+	// 方式2: 基于内存的
+	// store := memstore.NewStore([]byte("k6CswdUm75WKcbM68UQUuxVsHSpTCwgK"), []byte("eF1`yQ9>yT1`tH1,sJ0.zD8;mZ9~nC6("))
+
+	// 方式3: 基于redis 主流
+	// docker redis 端口:6379 密码为空
+	store, err := redis.NewStore(16, "tcp", "localhost:6379", "",
+		[]byte("k6CswdUm75WKcbM68UQUuxVsHSpTCwgK"), []byte("eF1`yQ9>yT1`tH1,sJ0.zD8;mZ9~nC6("))
+
+	if err != nil {
+		panic(err)
+	}
+
+	// session存在context中, context中
+	server.Use(sessions.Sessions("mysession", store)) // 设置 我的session的名字是 mysession 到cookie中,
+	// session存在context中
+
+	// 校验模块步骤3: 使用 验证session
+	// v1
+	server.Use(middleware.NewLoginMiddlewareBuilder().
+		IgnorePaths("/users/signup").
+		IgnorePaths("/users/login").Build()) //  链式调用
+
 	return server
 }
 
