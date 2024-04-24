@@ -18,6 +18,12 @@ type UserHandler struct {
 	passwordRexExp *regexp.Regexp
 }
 
+type FileHandler struct {
+	svc            *service.FileService
+	emailRexExp    *regexp.Regexp
+	passwordRexExp *regexp.Regexp
+}
+
 func NewUserHandler(svc *service.UserService) *UserHandler {
 	const (
 		// 正则表达式校验
@@ -34,6 +40,11 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 		emailRexExp:    emailExp,
 		passwordRexExp: passwordExp,
 	}
+}
+
+func NewFileHandler(svc *service.UserService) *FileHandler {
+
+	return &FileHandler{}
 }
 
 func (h *UserHandler) RegisterRoutes(server *gin.Engine) {

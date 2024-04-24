@@ -11,5 +11,5 @@ import "gorm.io/gorm"
 
 // 通过gorm建表
 func InitTable(db *gorm.DB) error {
-	return db.AutoMigrate(&User{})
+	return db.AutoMigrate(&User{}, &File{})
 }

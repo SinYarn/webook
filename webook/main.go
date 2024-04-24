@@ -92,11 +92,9 @@ func initWebServer() *gin.Engine {
 	// 方式2: 基于内存的
 	// store := memstore.NewStore([]byte("k6CswdUm75WKcbM68UQUuxVsHSpTCwgK"), []byte("eF1`yQ9>yT1`tH1,sJ0.zD8;mZ9~nC6("))
 
-	// 方式3: 基于redis 主流
+	// 方式3: 基于redis
 	// docker redis 端口:6379 密码为空
-	store, err := redis.NewStore(16, "tcp", "localhost:6379", "",
-		[]byte("k6CswdUm75WKcbM68UQUuxVsHSpTCwgK"), []byte("eF1`yQ9>yT1`tH1,sJ0.zD8;mZ9~nC6("))
-
+	store, err := redis.NewStore(16, "tcp", "localhost:6379", "", []byte("k6CswdUm75WKcbM68UQUuxVsHSpTCwgK"), []byte("eF1`yQ9>yT1`tH1,sJ0.zD8;mZ9~nC6("))
 	if err != nil {
 		panic(err)
 	}

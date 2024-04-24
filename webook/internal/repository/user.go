@@ -17,8 +17,18 @@ type UserRepository struct {
 	dao *dao.UserDAO
 }
 
+type FileRepository struct {
+	dao *dao.FileDAO
+}
+
 func NewUserRepository(dao *dao.UserDAO) *UserRepository {
 	return &UserRepository{
+		dao: dao,
+	}
+}
+
+func NewFileRepository(dao *dao.FileDAO) *FileRepository {
+	return &FileRepository{
 		dao: dao,
 	}
 }
@@ -39,6 +49,21 @@ func (r *UserRepository) Create(ctx context.Context, u domain.User) error {
 	return r.dao.Insert(ctx, dao.User{
 		Email:    u.Email,
 		Password: u.Password,
+	})
+}
+
+func (f *FileRepository) FileUploadFinsh(ctx context.Context,
+	username string,
+	filehash string,
+	filename string,
+	filesize int64,
+) error {
+	return f.dao.FileUploadFinsh(ctx, dao.File{
+		UserId:   0,
+		Username: username,
+		Filename: filename,
+		Filehash: filehash,
+		Filesize: filesize,
 	})
 }
 
