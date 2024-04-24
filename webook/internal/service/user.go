@@ -62,7 +62,7 @@ func (svc *UserService) SignUp(ctx context.Context, u domain.User) error {
 	}
 	// 存储
 	u.Password = string(hash)
-
+	println("hello")
 	return svc.repo.Create(ctx, u)
 }
 
