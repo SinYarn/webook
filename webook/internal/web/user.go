@@ -138,11 +138,27 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 	// 在这里登录成功了
 	// 设置session 拿到session
 	sess := sessions.Default(ctx)
+	sess.Options(sessions.Options{
+		MaxAge: 60, // 会话的最大存活时间, -1失效
+	})
 	// 设置session的值, 放在session中
 	sess.Set("userId", user.Id)
 	sess.Save() // 保存 session 到 cookie中 (响应header中可以看到)
 
 	ctx.String(http.StatusOK, "Login Succeed")
+	return
+}
+
+func (u *UserHandler) Logout(ctx *gin.Context) {
+	sess := sessions.Default(ctx)
+	sess.Options(sessions.Options{
+		MaxAge: -1, // 会话的最大存活时间, -1失效
+	})
+	// 设置session的值, 放在session中
+	// sess.Set("userId", user.Id)
+	sess.Save() // 保存 session 到 cookie中 (响应header中可以看到)
+
+	ctx.String(http.StatusOK, "Logout Succeed")
 	return
 }
 
