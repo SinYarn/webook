@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-contrib/sessions"
+	jwt "github.com/golang-jwt/jwt/v5"
 
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
@@ -45,7 +46,7 @@ func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
 	// POST /users/signup
 	ug.POST("/signup", h.SignUp)
 	// POST /users/login
-	ug.POST("/login", h.Login)
+	ug.POST("/login", h.LoginJWT)
 	// POST /users/edit
 	ug.POST("/edit", h.Edit)
 	// GET /users/profile
@@ -146,6 +147,42 @@ func (u *UserHandler) Login(ctx *gin.Context) {
 	sess.Save() // 保存 session 到 cookie中 (响应header中可以看到)
 
 	ctx.String(http.StatusOK, "Login Succeed")
+	return
+}
+
+func (u *UserHandler) LoginJWT(ctx *gin.Context) {
+	type LoginReq struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	// bind 获取登录的参数
+	var req LoginReq
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	user, err := u.svc.Login(ctx, req.Email, req.Password)
+	if err == service.ErrInvalidUserOrPassword {
+		ctx.String(http.StatusOK, "用户名或者密码不对")
+		return
+	}
+	if err != nil {
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+
+	// 登录校验模块步骤2:
+	// 生成JWT token
+	token := jwt.New(jwt.SigningMethodHS512)
+	tokenStr, err := token.SignedString([]byte("k6CswdUm75WKcbM68UQUuxVsHSpTCwgK"))
+	if err != nil {
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+	ctx.Header("x-jwt-token", tokenStr)
+	fmt.Println("tokenStr: ", tokenStr)
+	fmt.Println(user)
+	ctx.String(http.StatusOK, "Login Succeed, Use token")
 	return
 }
 

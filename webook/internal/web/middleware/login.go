@@ -14,8 +14,8 @@ type LoginMiddlewareBuilder struct {
 	paths []string
 }
 
-func NewLoginMiddlewareBuilder() *LoginMiddlewareBuilder {
-	return &LoginMiddlewareBuilder{}
+func NewLoginMiddlewareBuilder() *LoginJWTMiddlewareBuilder {
+	return &LoginJWTMiddlewareBuilder{}
 }
 
 func (l *LoginMiddlewareBuilder) IgnorePaths(path string) *LoginMiddlewareBuilder {

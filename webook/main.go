@@ -68,8 +68,8 @@ func initWebServer() *gin.Engine {
 		// AllowMethods: []string{"POST", "GET"},
 		AllowHeaders: []string{"Content-Type", "Authorization"},
 
-		// 允许正式请求，响应带的header
-		//ExposeHeaders: []string{"Content-Length"},
+		// 允许正式请求，响应带的header, 加这个前端才能拿得到
+		ExposeHeaders: []string{"x-jwt-token"},
 
 		// 是否允许带 cookie 之类的
 		AllowCredentials: true,
@@ -107,9 +107,17 @@ func initWebServer() *gin.Engine {
 
 	// 校验模块步骤3: 使用 验证session
 	// v1
-	server.Use(middleware.NewLoginMiddlewareBuilder().
+	// session 校验
+	/*
+		server.Use(middleware.NewLoginMiddlewareBuilder().
 		IgnorePaths("/users/signup").
 		IgnorePaths("/users/login").Build()) //  链式调用
+	*/
+
+	// jwt 校验
+	server.Use(middleware.NewLoginJWTMiddlewareBuilder().
+		IgnorePaths("/users/signup").
+		IgnorePaths("/users/login").Build())
 
 	return server
 }
