@@ -1,9 +1,10 @@
 package web
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
-	"testing"
 )
 
 func TestEncrypt(t *testing.T) {
@@ -16,3 +17,11 @@ func TestEncrypt(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestNil(t *testing.T) {
+	testTypeAssert(nil)
+}
+
+func testTypeAssert(c any) {
+	claims := c.(*UserClaims)
+	println(claims)
+}

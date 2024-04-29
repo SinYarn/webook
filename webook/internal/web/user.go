@@ -5,6 +5,7 @@ import (
 	"Clould/webook/internal/service"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	jwt "github.com/golang-jwt/jwt/v5"
@@ -50,7 +51,7 @@ func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
 	// POST /users/edit
 	ug.POST("/edit", h.Edit)
 	// GET /users/profile
-	ug.GET("/profile", h.Profile)
+	ug.GET("/profile", h.ProfileJWT)
 }
 
 func (u *UserHandler) SignUp(ctx *gin.Context) {
@@ -173,7 +174,17 @@ func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 
 	// 登录校验模块步骤2:
 	// 生成JWT token
-	token := jwt.New(jwt.SigningMethodHS512)
+	// TODO: 在jwt里添加个人数据
+	// 自定义 claims结构体 里面放userId
+	claims := UserClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
+		},
+		Uid: user.Id,
+	}
+
+	// 生成token 同时把claims 放入
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 	tokenStr, err := token.SignedString([]byte("k6CswdUm75WKcbM68UQUuxVsHSpTCwgK"))
 	if err != nil {
 		ctx.String(http.StatusOK, "系统错误")
@@ -203,6 +214,29 @@ func (u *UserHandler) Edit(ctx *gin.Context) {
 
 }
 
+func (u *UserHandler) ProfileJWT(ctx *gin.Context) {
+	c, ok := ctx.Get("claims")
+	// 必然有claims
+	if !ok {
+		// 监控住这里
+		ctx.String(http.StatusOK, "系统错误")
+	}
+	// ok 代表是不是 *UserClaims 如果断言成功
+	claims, ok := c.(*UserClaims)
+	if !ok {
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+	println("ProfileJWT - claims.Uid: ", claims.Uid)
+}
+
 func (u *UserHandler) Profile(ctx *gin.Context) {
 	ctx.String(http.StatusOK, "这是你的Profile")
+}
+
+type UserClaims struct {
+	jwt.RegisteredClaims
+	// 声明自己要放进去token里面的数据
+	// 可以自己随便加字段, 不要放敏感信息
+	Uid int64
 }
