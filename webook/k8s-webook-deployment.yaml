@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webook
+# 规格说明, 描述 pods 是什么样的
+spec:
+# 副本数量
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webook
+#       template 描述的是你 POD 是什么样的
+  template:
+    metadata:
+      labels:
+        app: webook
+#   POD的具体信息
+    spec:
+      containers:
+        - name: webook
+          image: clould/webook:v0.0.1
+          # 对应gin的端口
+          ports:
+            - containerPort: 8080
+
+

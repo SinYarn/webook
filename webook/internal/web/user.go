@@ -180,7 +180,8 @@ func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
 		},
-		Uid: user.Id,
+		Uid:       user.Id,
+		UserAgent: ctx.Request.UserAgent(),
 	}
 
 	// 生成token 同时把claims 放入
@@ -227,6 +228,7 @@ func (u *UserHandler) ProfileJWT(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "系统错误")
 		return
 	}
+	ctx.String(http.StatusOK, "你的 Profile")
 	println("ProfileJWT - claims.Uid: ", claims.Uid)
 }
 
@@ -238,5 +240,6 @@ type UserClaims struct {
 	jwt.RegisteredClaims
 	// 声明自己要放进去token里面的数据
 	// 可以自己随便加字段, 不要放敏感信息
-	Uid int64
+	Uid       int64
+	UserAgent string
 }

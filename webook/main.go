@@ -28,8 +28,13 @@ func main() {
 	// 4. 注册分组路由
 	u.RegisterRoutes(server)
 
+	/*	server := gin.Default()
+		server.GET("/hello", func(ctx *gin.Context) {
+			ctx.String(http.StatusOK, "hello Kubernetes!")
+		})
+	*/
 	// 监听并在 0.0.0.0:8080 上启动服务
-	server.Run()
+	server.Run(":8080")
 }
 
 // 1. 初始化数据库
@@ -100,13 +105,14 @@ func initWebServer() *gin.Engine {
 	// 方式1: 使用cookie
 	// 登录校验模块: 初始化
 	// 登录校验模块步骤1: 生成session, 放在cookie里
-	//store := cookie.NewStore([]byte("secret"))
+	// store := cookie.NewStore([]byte("secret"))
 
 	// 方式2: 基于内存的
 	// store := memstore.NewStore([]byte("k6CswdUm75WKcbM68UQUuxVsHSpTCwgK"), []byte("eF1`yQ9>yT1`tH1,sJ0.zD8;mZ9~nC6("))
 
 	// 方式3: 基于redis 主流
 	// docker redis 端口:6379 密码为空
+
 	//store, err := redis.NewStore(16, "tcp", "localhost:6379", "",
 	//	[]byte("k6CswdUm75WKcbM68UQUuxVsHSpTCwgK"), []byte("eF1`yQ9>yT1`tH1,sJ0.zD8;mZ9~nC6("))
 	//
