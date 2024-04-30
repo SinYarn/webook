@@ -6,16 +6,15 @@ import (
 	"Clould/webook/internal/service"
 	"Clould/webook/internal/web"
 	"Clould/webook/internal/web/middleware"
+	"Clould/webook/pkg/ginx/middlewares/ratelimit"
 	"strings"
 	"time"
 
-	"github.com/gin-contrib/sessions/redis"
-
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
 	"github.com/gin-contrib/cors"
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -59,8 +58,22 @@ func initWebServer() *gin.Engine {
 
 	// middleware中间件, 在request之前执行
 	server.Use(func(ctx *gin.Context) {
-		println("这是第一个middleware")
+		println("这是第一个 middleware")
 	})
+
+	server.Use(func(ctx *gin.Context) {
+		println("这是第二个 middleware")
+	})
+
+	// 初始化redis
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       1,
+	})
+
+	// 使用限流插件 1秒100个请求
+	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 100).Build())
 
 	// middleware中间件: 解决跨域请求的问题
 	server.Use(cors.New(cors.Config{
@@ -94,15 +107,15 @@ func initWebServer() *gin.Engine {
 
 	// 方式3: 基于redis 主流
 	// docker redis 端口:6379 密码为空
-	store, err := redis.NewStore(16, "tcp", "localhost:6379", "",
-		[]byte("k6CswdUm75WKcbM68UQUuxVsHSpTCwgK"), []byte("eF1`yQ9>yT1`tH1,sJ0.zD8;mZ9~nC6("))
-
-	if err != nil {
-		panic(err)
-	}
-
+	//store, err := redis.NewStore(16, "tcp", "localhost:6379", "",
+	//	[]byte("k6CswdUm75WKcbM68UQUuxVsHSpTCwgK"), []byte("eF1`yQ9>yT1`tH1,sJ0.zD8;mZ9~nC6("))
+	//
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
 	// session存在context中, context中
-	server.Use(sessions.Sessions("mysession", store)) // 设置 我的session的名字是 mysession 到cookie中,
+	// server.Use(sessions.Sessions("mysession", store)) // 设置 我的session的名字是 mysession 到cookie中,
 	// session存在context中
 
 	// 校验模块步骤3: 使用 验证session
