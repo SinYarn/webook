@@ -7,6 +7,7 @@ import (
 	"Clould/webook/internal/web"
 	"Clould/webook/internal/web/middleware"
 	"Clould/webook/pkg/ginx/middlewares/ratelimit"
+	"net/http"
 	"strings"
 	"time"
 
@@ -19,20 +20,20 @@ import (
 )
 
 func main() {
-	// 1. 初始化数据库
-	db := initDB()
-	// 2. 初始化web服务
-	server := initWebServer()
-	// 3. 初始化 DDD分层结构
-	u := initUser(db)
-	// 4. 注册分组路由
-	u.RegisterRoutes(server)
+	/*	// 1. 初始化数据库
+		db := initDB()
+		// 2. 初始化web服务
+		server := initWebServer()
+		// 3. 初始化 DDD分层结构
+		u := initUser(db)
+		// 4. 注册分组路由
+		u.RegisterRoutes(server)*/
 
-	/*	server := gin.Default()
-		server.GET("/hello", func(ctx *gin.Context) {
-			ctx.String(http.StatusOK, "hello Kubernetes!")
-		})
-	*/
+	server := gin.Default()
+	server.GET("/hello", func(ctx *gin.Context) {
+		ctx.String(http.StatusOK, "hello Kubernetes!")
+	})
+
 	// 监听并在 0.0.0.0:8080 上启动服务
 	server.Run(":8080")
 }
