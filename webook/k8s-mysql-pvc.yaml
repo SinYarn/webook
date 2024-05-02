@@ -1,0 +1,22 @@
+# pvc PersistentVolumeClaim 一个容器需要什么存储资源
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: webook-mysql-claim
+  labels:
+    app: webook-mysql-claim
+spec:
+# 这个可以随便
+  storageClassName: manual
+# 访问模式, 控制pod的读写
+  accessModes:
+# 一个pod读写
+    - ReadWriteOnce
+# 多个pod读写
+#    - ReadWriteMany
+# 需要的资源
+  resources:
+    requests:
+# 1GB
+      store: 1Gi
+
