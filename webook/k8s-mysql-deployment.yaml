@@ -1,26 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: $title$
+  name: webook-mysql
   labels:
-    app: $title$
+    app: webook-mysql
 spec:
-  replicas: $3$
+  replicas: 1
   selector:
     matchLabels:
-      app: $title$
+      app: webook-mysql
   template:
     metadata:
-      name: $title$
+      name: webook-mysql
       labels:
-        app: $title$
+        app: webook-mysql
     spec:
       containers:
-        - name: $title$
-          image: $nginx$
+        - name: webook-mysql
+          image: mysql:8.0
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: root
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: $80$
-              protocol: $TCP$
+            - containerPort: 3306
       restartPolicy: Always
-      $END$
+      

@@ -31,7 +31,7 @@ func main() {
 
 	server := gin.Default()
 	server.GET("/hello", func(ctx *gin.Context) {
-		ctx.String(http.StatusOK, "hello Kubernetes!")
+		ctx.String(http.StatusOK, "hello start Kubernetes!")
 	})
 
 	// 监听并在 0.0.0.0:8080 上启动服务
