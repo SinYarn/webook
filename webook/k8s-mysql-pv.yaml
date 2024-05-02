@@ -1,0 +1,17 @@
+apiVersion: v1
+# k8s 有哪些 volume 持久化卷，表达我是一个什么样的存储结构
+kind: PersistentVolume
+metadata:
+  name: my-local-pv
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+# 容量
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: /mnt/live
+  

@@ -22,7 +22,19 @@ spec:
             - name: MYSQL_ROOT_PASSWORD
               value: root
           imagePullPolicy: IfNotPresent
+          # 持久化 挂载, 选择用哪一个
+          volumeMounts:
+            # 要对应到 MySQL 数据存储的位置
+            - mountPath: /var/lib/mysql
+              name: mysql-storage
           ports:
             - containerPort: 3306
       restartPolicy: Always
-      
+# 整个pod有哪些
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: webook-mysql-claim
+#        - name: hadoop-storage-claim
+#          persistentVolumeClaim:
+#            claimName: webook-mysql-claim

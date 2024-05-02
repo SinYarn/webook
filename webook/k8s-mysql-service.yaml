@@ -10,4 +10,6 @@ spec:
       # 外部访问端口
       port: 11308
       targetPort: 3306
-  type: LoadBalancer
+      # 如果设置NodePort 内部是 port 外部的端口都用30002访问
+      nodePort: 30002
+  type: NodePort

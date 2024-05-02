@@ -11,12 +11,12 @@ spec:
 # 访问模式, 控制pod的读写
   accessModes:
 # 一个pod读写
-    - ReadWriteOnce
+    - ReadWriteMany
 # 多个pod读写
 #    - ReadWriteMany
 # 需要的资源
   resources:
     requests:
 # 1GB
-      store: 1Gi
+      storage: 1Gi
 
