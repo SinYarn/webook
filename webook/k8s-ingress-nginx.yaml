@@ -1,16 +1,21 @@
-apiVersion: nerworking.k8s.io/v1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ingress-demo
+  name: webook-live-ingress
 spec:
-  ingressClassName:
-    rules:
-      - host: localhost
-        http:
+  ingressClassName: nginx
+  rules:
+# host 是webook.com的时候, 命中这条
+    - host: live.webook.com
+      http:
+        paths:
+#         - 请求路径是 / 时候
+#         - 将流量转发过去的后面的 webook 服务商
+#         - 端口是 88
           - path: /
             pathType: Prefix
             backend:
               service:
                 name: webook
                 port:
-                  number: 80
+                  number: 88

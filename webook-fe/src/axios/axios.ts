@@ -1,8 +1,8 @@
 import axios from "axios";
 import router from "next/router";
 const instance = axios.create({
-    // 这边记得修改你对应的配置文件
-    baseURL:  "http://localhost:8080",
+    // 这边记得修改你对应的配置文件, 后端的runserver 端口
+    baseURL:  "http://localhost:88",
     withCredentials: true
 })
 

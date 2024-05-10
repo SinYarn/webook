@@ -1,13 +1,13 @@
 package main
 
 import (
+	"Clould/webook/config"
 	"Clould/webook/internal/repository"
 	dao2 "Clould/webook/internal/repository/dao"
 	"Clould/webook/internal/service"
 	"Clould/webook/internal/web"
 	"Clould/webook/internal/web/middleware"
 	"Clould/webook/pkg/ginx/middlewares/ratelimit"
-	"net/http"
 	"strings"
 	"time"
 
@@ -20,19 +20,18 @@ import (
 )
 
 func main() {
-	/*	// 1. 初始化数据库
-		db := initDB()
-		// 2. 初始化web服务
-		server := initWebServer()
-		// 3. 初始化 DDD分层结构
-		u := initUser(db)
-		// 4. 注册分组路由
-		u.RegisterRoutes(server)*/
+	// 1. 初始化数据库
+	db := initDB()
+	// 2. 初始化web服务
+	server := initWebServer()
+	// 3. 初始化 DDD分层结构
+	u := initUser(db)
+	// 4. 注册分组路由
+	u.RegisterRoutes(server)
 
-	server := gin.Default()
-	server.GET("/hello", func(ctx *gin.Context) {
+	/*	server.GET("/hello", func(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "hello start Kubernetes!")
-	})
+	})*/
 
 	// 监听并在 0.0.0.0:8080 上启动服务
 	server.Run(":8080")
@@ -41,7 +40,7 @@ func main() {
 // 1. 初始化数据库
 func initDB() *gorm.DB {
 	// 链接mysql数据库(docker中)
-	db, err := gorm.Open(mysql.Open("root:root@tcp(localhost:13316)/webook"))
+	db, err := gorm.Open(mysql.Open(config.Config.DB.DSN))
 	if err != nil {
 		// panic: go goroutine 结束
 		// 初始化错误, 应用不启动
@@ -73,7 +72,7 @@ func initWebServer() *gin.Engine {
 
 	// 初始化redis
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     config.Config.Redis.Addr,
 		Password: "",
 		DB:       1,
 	})
@@ -98,7 +97,7 @@ func initWebServer() *gin.Engine {
 				return true
 			}
 			// 其他开发环境：你的域名
-			return strings.Contains(origin, "qiuwenjuan.top")
+			return strings.Contains(origin, "live.webook.com")
 		},
 		MaxAge: 12 * time.Hour,
 	}))
@@ -142,7 +141,7 @@ func initWebServer() *gin.Engine {
 	return server
 }
 
-// 2. 初始化 DDD分层结构
+// 3. 初始化 DDD分层结构
 func initUser(db *gorm.DB) *web.UserHandler {
 	// DDD架构
 	ud := dao2.NewUserDAO(db)

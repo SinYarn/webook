@@ -38,20 +38,20 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 	}
 }
 
-func (h *UserHandler) RegisterRoutes(server *gin.Engine) {
+func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	// REST 风格
-	//server.POST("/user", h.SignUp)
-	//server.PUT("/user", h.SignUp)
-	//server.GET("/users/:username", h.Profile)
+	//server.POST("/user", uu.SignUp)
+	//server.PUT("/user", uu.SignUp)
+	//server.GET("/users/:username", uu.Profile)
 	ug := server.Group("/users")
 	// POST /users/signup
-	ug.POST("/signup", h.SignUp)
+	ug.POST("/signup", u.SignUp)
 	// POST /users/login
-	ug.POST("/login", h.LoginJWT)
+	ug.POST("/login", u.LoginJWT)
 	// POST /users/edit
-	ug.POST("/edit", h.Edit)
+	ug.POST("/edit", u.Edit)
 	// GET /users/profile
-	ug.GET("/profile", h.ProfileJWT)
+	ug.GET("/profile", u.ProfileJWT)
 }
 
 func (u *UserHandler) SignUp(ctx *gin.Context) {
