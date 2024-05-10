@@ -7,11 +7,9 @@ import (
 	"Clould/webook/internal/service"
 	"Clould/webook/internal/web"
 	"Clould/webook/internal/web/middleware"
-	"Clould/webook/pkg/ginx/middlewares/ratelimit"
 	"strings"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
@@ -70,16 +68,16 @@ func initWebServer() *gin.Engine {
 		println("这是第二个 middleware")
 	})
 
-	// 初始化redis
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     config.Config.Redis.Addr,
-		Password: "",
-		DB:       1,
-	})
+	/*	// 初始化redis
+		redisClient := redis.NewClient(&redis.Options{
+			Addr:     config.Config.Redis.Addr,
+			Password: "",
+			DB:       1,
+		})
 
-	// 使用限流插件 1秒100个请求
-	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 100).Build())
-
+		// 使用限流插件 1秒100个请求
+		server.Use(ratelimit.NewBuilder(redisClient, time.Second, 100).Build())
+	*/
 	// middleware中间件: 解决跨域请求的问题
 	server.Use(cors.New(cors.Config{
 		// AllowOrigins: []string{"http://localhost:3000"},
