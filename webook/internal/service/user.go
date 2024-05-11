@@ -5,6 +5,9 @@ import (
 	"Clould/webook/internal/repository"
 	"context"
 	"errors"
+	"fmt"
+
+	"github.com/redis/go-redis/v9"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -13,7 +16,8 @@ var ErrUserDuplicateEmail = repository.ErrUserDuplicateEmail
 var ErrInvalidUserOrPassword = errors.New("账号/邮箱或者密码不正确")
 
 type UserService struct {
-	repo *repository.UserRepository
+	repo  *repository.UserRepository
+	redis *redis.Client
 }
 
 func NewUserService(repo *repository.UserRepository) *UserService {
@@ -53,5 +57,21 @@ func (svc *UserService) SignUp(ctx context.Context, u domain.User) error {
 	// 存储
 	u.Password = string(hash)
 
+	// 然后就是存起来
+	err := svc.repo.Create(ctx, u)
+	if err != nil {
+		return err
+	}
+
 	return svc.repo.Create(ctx, u)
+}
+
+func (svc *UserService) Profile(ctx context.Context,
+	id int64) (domain.User, error) {
+	// 第一个念头
+	val, err := svc.redis.Get(ctx, fmt.Sprintf("user:%d", id)).Result()
+	if err != nil {
+		return domain.User{}, err
+	}
+
 }
