@@ -5,7 +5,6 @@ import (
 	"Clould/webook/internal/repository"
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/redis/go-redis/v9"
 
@@ -58,7 +57,7 @@ func (svc *UserService) SignUp(ctx context.Context, u domain.User) error {
 	u.Password = string(hash)
 
 	// 然后就是存起来
-	err := svc.repo.Create(ctx, u)
+	err = svc.repo.Create(ctx, u)
 	if err != nil {
 		return err
 	}
@@ -68,10 +67,6 @@ func (svc *UserService) SignUp(ctx context.Context, u domain.User) error {
 
 func (svc *UserService) Profile(ctx context.Context,
 	id int64) (domain.User, error) {
-	// 第一个念头
-	val, err := svc.redis.Get(ctx, fmt.Sprintf("user:%d", id)).Result()
-	if err != nil {
-		return domain.User{}, err
-	}
-
+	u, err := svc.repo.FindById(ctx, id)
+	return u, err
 }

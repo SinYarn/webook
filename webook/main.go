@@ -3,12 +3,15 @@ package main
 import (
 	"Clould/webook/config"
 	"Clould/webook/internal/repository"
-	dao2 "Clould/webook/internal/repository/dao"
+	"Clould/webook/internal/repository/cache"
+	dao "Clould/webook/internal/repository/dao"
 	"Clould/webook/internal/service"
 	"Clould/webook/internal/web"
 	"Clould/webook/internal/web/middleware"
 	"strings"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -20,10 +23,16 @@ import (
 func main() {
 	// 1. 初始化数据库
 	db := initDB()
+
+	rc := redis.NewClient(&redis.Options{
+		Addr:     config.Config.Redis.Addr,
+		Password: "",
+		DB:       1,
+	})
 	// 2. 初始化web服务
 	server := initWebServer()
 	// 3. 初始化 DDD分层结构
-	u := initUser(db)
+	u := initUser(db, rc)
 	// 4. 注册分组路由
 	u.RegisterRoutes(server)
 
@@ -46,7 +55,7 @@ func initDB() *gorm.DB {
 	}
 
 	// 数据库建表
-	err = dao2.InitTable(db)
+	err = dao.InitTable(db)
 	if err != nil {
 		// 建表不成功, 终止应用
 		panic(err)
@@ -140,10 +149,11 @@ func initWebServer() *gin.Engine {
 }
 
 // 3. 初始化 DDD分层结构
-func initUser(db *gorm.DB) *web.UserHandler {
+func initUser(db *gorm.DB, redisClient redis.Cmdable) *web.UserHandler {
 	// DDD架构
-	ud := dao2.NewUserDAO(db)
-	repo := repository.NewUserRepository(ud)
+	ud := dao.NewUserDAO(db)
+	uc := cache.NewUserCache(redisClient)
+	repo := repository.NewUserRepository(ud, uc)
 	svc := service.NewUserService(repo)
 	// 预编译 正则表达式（邮箱、 密码匹配） -- 优化项目性能, 提高校验速度
 	u := web.NewUserHandler(svc)
