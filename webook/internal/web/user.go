@@ -110,7 +110,7 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "系统错误")
 		return
 	}
-	ctx.String(http.StatusOK, "SignUp Succed")
+	ctx.String(http.StatusOK, "SignUp Succeed")
 	fmt.Printf("%v\n", req)
 	return
 }

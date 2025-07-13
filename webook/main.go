@@ -8,11 +8,11 @@ import (
 	"Clould/webook/internal/service"
 	"Clould/webook/internal/web"
 	"Clould/webook/internal/web/middleware"
+	"Clould/webook/pkg/ginx/middlewares/ratelimit"
 	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
-
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
@@ -41,6 +41,7 @@ func main() {
 	})*/
 
 	// 监听并在 0.0.0.0:8080 上启动服务
+	//server := gin.Default()
 	server.Run(":8080")
 }
 
@@ -76,6 +77,15 @@ func initWebServer() *gin.Engine {
 	server.Use(func(ctx *gin.Context) {
 		println("这是第二个 middleware")
 	})
+	// 初始化redis IP 限流
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     config.Config.Redis.Addr,
+		Password: "",
+		DB:       1,
+	})
+
+	// 使用限流插件 1秒100个请求
+	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 100).Build())
 
 	/*	// 初始化redis
 		redisClient := redis.NewClient(&redis.Options{

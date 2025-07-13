@@ -9,7 +9,6 @@ services:
     volumes:
       # 设置初始化脚本
       - ./script/mysql/:/docker-entrypoint-initdb.d/
-
     ports:
       # 映射docker 13316端口 物理机 : docker
       - "13316:3306"

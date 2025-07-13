@@ -8,10 +8,11 @@ metadata:
 spec:
 # 这个可以随便
   storageClassName: manual
-# 访问模式, 控制pod的读写
+# 访问模式,  
   accessModes:
-# 一个pod读写
     - ReadWriteMany
+# 一个pod读写
+
 # 多个pod读写
 #    - ReadWriteMany
 # 需要的资源

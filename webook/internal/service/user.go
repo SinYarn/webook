@@ -57,11 +57,6 @@ func (svc *UserService) SignUp(ctx context.Context, u domain.User) error {
 	u.Password = string(hash)
 
 	// 然后就是存起来
-	err = svc.repo.Create(ctx, u)
-	if err != nil {
-		return err
-	}
-
 	return svc.repo.Create(ctx, u)
 }
 
