@@ -52,6 +52,8 @@ function Page() {
             </ProDescriptions.Item>
             <ProDescriptions.Item>
                 <Button href={"/users/edit"} type={"primary"}>修改</Button>
+                &nbsp;&nbsp;
+                <Button href={"/files"} type={"primary"}>我的云盘</Button>
             </ProDescriptions.Item>
 
         </ProDescriptions>

@@ -6,24 +6,25 @@ import (
 	"Clould/webook/internal/repository/cache"
 	dao "Clould/webook/internal/repository/dao"
 	"Clould/webook/internal/service"
+	"Clould/webook/internal/service/storage"
 	"Clould/webook/internal/web"
 	"Clould/webook/internal/web/middleware"
 	"Clould/webook/pkg/ginx/middlewares/ratelimit"
+	"log"
 	"strings"
 	"time"
 
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	// 1. 初始化数据库
 	db := initDB()
-
+	log.Print("hello world")
 	rc := redis.NewClient(&redis.Options{
 		Addr:     config.Config.Redis.Addr,
 		Password: "",
@@ -33,8 +34,10 @@ func main() {
 	server := initWebServer()
 	// 3. 初始化 DDD分层结构
 	u := initUser(db, rc)
+	f := initFile(db)
 	// 4. 注册分组路由
 	u.RegisterRoutes(server)
+	f.RegisterRoutes(server)
 
 	/*	server.GET("/hello", func(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "hello start Kubernetes!")
@@ -168,4 +171,12 @@ func initUser(db *gorm.DB, redisClient redis.Cmdable) *web.UserHandler {
 	// 预编译 正则表达式（邮箱、 密码匹配） -- 优化项目性能, 提高校验速度
 	u := web.NewUserHandler(svc)
 	return u
+}
+
+func initFile(db *gorm.DB) *web.FileHandler {
+	fd := dao.NewFileDAO(db)
+	repo := repository.NewFileRepository(fd)
+	engine := storage.NewLocalEngine(config.Config.File.RootPath, config.Config.File.ChunkPath)
+	svc := service.NewFileService(repo, engine)
+	return web.NewFileHandler(svc)
 }

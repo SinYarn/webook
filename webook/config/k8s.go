@@ -11,4 +11,8 @@ var Config = config{
 	Redis: RedisConfig{
 		Addr: "webook-redis:10379",
 	},
+	File: FileConfig{
+		RootPath:  "/data/files",
+		ChunkPath: "/data/chunks",
+	},
 }

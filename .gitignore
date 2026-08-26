@@ -51,3 +51,4 @@ docs/
 webook/docs/
 .cursor/
 test.db
+webook/data/

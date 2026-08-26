@@ -11,4 +11,8 @@ var Config = config{
 	Redis: RedisConfig{
 		Addr: "localhost:6379",
 	},
+	File: FileConfig{
+		RootPath:  "./data/files",
+		ChunkPath: "./data/chunks",
+	},
 }
