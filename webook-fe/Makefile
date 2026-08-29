@@ -1,4 +1,4 @@
-# 变量定义
+# Frontend release pipeline: host build -> standalone image -> kind -> Kubernetes
 IMAGE_NAME ?= could/webook-fe
 VERSION ?= v0.0.1
 NAMESPACE ?= default
@@ -8,18 +8,21 @@ INGRESS_NAMESPACE ?= ingress-nginx
 INGRESS_HOST ?= live.webook.com
 # 构建时注入：Ingress 模式用 http://api.webook.com，LoadBalancer 模式用 http://localhost:88
 API_BASE_URL ?= http://api.webook.com
+KIND_NODE ?= desktop-control-plane
+
+.DEFAULT_GOAL := help
 
 .PHONY: help
 help:
 	@echo "webook-fe K8s Deployment Commands:"
-	@echo "  make build          - Build Next.js (local npm run build)"
-	@echo "  make docker         - Build Docker image"
+	@echo "  make build          - Build Next.js standalone output on host"
+	@echo "  make docker         - Build and load Docker image"
 	@echo "  make docker API_BASE_URL=http://localhost:88  - LB 模式 API 地址"
 	@echo "  make deploy         - Deploy to K8s (update image)"
 	@echo "  make deploy-init    - Initial deployment from YAML"
 	@echo "  make deploy-deps-init      - Deploy webook-fe Service (first time)"
 	@echo "  make deploy-ingress        - Apply frontend ingress rules"
-	@echo "  make release        - Build image + deploy"
+	@echo "  make release VERSION=v0.0.2 - Build, load and deploy"
 	@echo "  make status         - Show deployment status"
 	@echo "  make logs           - Show Pod logs"
 	@echo "  make rollback       - Rollback to previous version"
@@ -66,24 +69,26 @@ deploy-ingress:
 
 .PHONY: build
 build:
-	@echo "Building Next.js..."
-	@npm run build
+	@echo "Building Next.js on host..."
+	@echo "  API_BASE_URL=$(API_BASE_URL)"
+	@test -f node_modules/next/dist/bin/next || (echo "Missing dependencies; run: npm install" && exit 1)
+	@rm -rf .next
+	@NEXT_PUBLIC_API_BASE_URL=$(API_BASE_URL) npm run build
+	@test -f .next/standalone/server.js || (echo "Missing .next/standalone/server.js" && exit 1)
 	@echo "Build completed."
 
 .PHONY: docker
-docker:
+docker: build
 	@echo "Building Docker image: $(IMAGE_NAME):$(VERSION)"
-	@echo "  API_BASE_URL=$(API_BASE_URL)"
 	@docker rmi -f $(IMAGE_NAME):$(VERSION) 2>/dev/null || true
-	@docker build --build-arg NEXT_PUBLIC_API_BASE_URL=$(API_BASE_URL) -t $(IMAGE_NAME):$(VERSION) .
+	@docker build -t $(IMAGE_NAME):$(VERSION) .
 	@echo "Image built successfully: $(IMAGE_NAME):$(VERSION)"
 	@$(MAKE) load-image
-
-KIND_NODE ?= desktop-control-plane
 
 .PHONY: load-image
 load-image:
 	@echo "Loading image into K8s node ($(KIND_NODE))..."
+	@docker inspect $(KIND_NODE) >/dev/null 2>&1 || (echo "K8s node not found: $(KIND_NODE)" && exit 1)
 	@docker save $(IMAGE_NAME):$(VERSION) | docker exec -i $(KIND_NODE) ctr -n k8s.io images import -
 	@echo "Image loaded: $(IMAGE_NAME):$(VERSION)"
 
@@ -96,9 +101,10 @@ deploy:
 		exit 1; \
 	fi
 	@kubectl set image deployment/$(DEPLOYMENT_NAME) $(DEPLOYMENT_NAME)=$(IMAGE_NAME):$(VERSION) -n $(NAMESPACE)
-	@kubectl rollout status deployment/$(DEPLOYMENT_NAME) -n $(NAMESPACE) --timeout=300s || true
+	@kubectl rollout restart deployment/$(DEPLOYMENT_NAME) -n $(NAMESPACE)
+	@kubectl rollout status deployment/$(DEPLOYMENT_NAME) -n $(NAMESPACE) --timeout=300s
 	@echo "Deployment completed!"
-	@make status
+	@$(MAKE) status
 
 .PHONY: release
 release: docker deploy

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node -e \"const fs=require('fs');['.next/trace','.next/trace.raw'].forEach(f=>{try{fs.rmSync(f,{force:true})}catch(e){}});if(fs.existsSync('.next/standalone')){fs.rmSync('.next',{recursive:true,force:true})}\"",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

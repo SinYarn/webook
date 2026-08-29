@@ -11,6 +11,8 @@ import (
 	"Clould/webook/internal/web/middleware"
 	"Clould/webook/pkg/ginx/middlewares/ratelimit"
 	"log"
+	"net"
+	"net/url"
 	"strings"
 	"time"
 
@@ -115,7 +117,15 @@ func initWebServer() *gin.Engine {
 			if strings.HasPrefix(origin, "http://localhost") {
 				return true
 			}
-			return strings.Contains(origin, "webook.com")
+			if strings.Contains(origin, "webook.com") {
+				return true
+			}
+			u, err := url.Parse(origin)
+			if err != nil {
+				return false
+			}
+			ip := net.ParseIP(u.Hostname())
+			return ip != nil && (ip.IsPrivate() || ip.IsLoopback())
 		},
 		MaxAge: 12 * time.Hour,
 	}))

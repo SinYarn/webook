@@ -1,7 +1,12 @@
 import axios from "axios";
 import router from "next/router";
+
+const defaultBaseURL = typeof window === "undefined"
+    ? "http://localhost:8080"
+    : `${window.location.protocol}//${window.location.hostname}:8080`
+
 const instance = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:88",
+    baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || defaultBaseURL,
     withCredentials: true
 })
 
@@ -22,10 +27,10 @@ instance.interceptors.response.use(function (resp) {
     return resp
 }, (err) => {
     console.log(err)
-    if (err.response.status == 401) {
+    if (err.response?.status == 401) {
         window.location.href="/users/login"
     }
-    return err
+    return Promise.reject(err)
 })
 
 // 在这里让每一个请求都加上 authorization 的头部

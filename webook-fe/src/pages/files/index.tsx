@@ -5,6 +5,7 @@ import axios from "@/axios/axios";
 import Link from "next/link";
 import moment from "moment";
 import SparkMD5 from "spark-md5";
+import FileThumb from "./FileThumb";
 
 const CHUNK_SIZE = 2 * 1024 * 1024;
 
@@ -226,10 +227,13 @@ function Page() {
             title: "文件名",
             dataIndex: "Filename",
             render: (_, row) => {
-                if (row.FolderFlag == 1) {
-                    return <a onClick={() => setParentId(row.Id)}>{row.Filename}</a>;
-                }
-                return <span>{row.Filename}</span>;
+                const name = row.FolderFlag == 1
+                    ? <a onClick={() => setParentId(row.Id)}>{row.Filename}</a>
+                    : <span>{row.Filename}</span>;
+                return <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                    <FileThumb row={row}/>
+                    {name}
+                </div>;
             },
         },
         {

@@ -1,28 +1,14 @@
-FROM node:18-alpine AS builder
-
-WORKDIR /app
-
-COPY package.json package-lock.json ./
-RUN npm ci
-
-COPY . .
-
-ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:88
-ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
-
-RUN npm run build
-
-FROM node:18-alpine AS runner
+FROM node:18-alpine
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY --from=builder /app/package.json /app/package-lock.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
+COPY package.json ./
+COPY .next/standalone ./
+COPY .next/static ./.next/static
+COPY public ./public
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
