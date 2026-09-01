@@ -11,6 +11,7 @@ var (
 	ErrFileDuplicateIdentifier = dao.ErrFileDuplicateIdentifier
 )
 
+// FileRepository 领域对象 <-> DAO。service 不直接碰 gorm 结构体。
 type FileRepository struct {
 	dao *dao.FileDAO
 }
@@ -74,6 +75,14 @@ func (r *FileRepository) CreateUserFile(ctx context.Context, uf domain.UserFile)
 
 func (r *FileRepository) FindUserFile(ctx context.Context, uid int64, id int64) (domain.UserFile, error) {
 	po, err := r.dao.FindUserFileById(ctx, uid, id)
+	if err != nil {
+		return domain.UserFile{}, err
+	}
+	return toDomainUserFile(po), nil
+}
+
+func (r *FileRepository) FindFolder(ctx context.Context, uid int64, parentId int64, name string) (domain.UserFile, error) {
+	po, err := r.dao.FindUserFileByName(ctx, uid, parentId, name, domain.FolderYes)
 	if err != nil {
 		return domain.UserFile{}, err
 	}

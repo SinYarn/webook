@@ -18,10 +18,19 @@ spec:
     spec:
       containers:
         - name: webook
-          image: could/webook:v0.0.1
+          image: could/webook:v0.0.5
           imagePullPolicy: IfNotPresent
           # 对应gin的端口
           ports:
             - containerPort: 8080
+          volumeMounts:
+            - name: webook-data
+              mountPath: /data
+      volumes:
+        # 单节点集群：3 副本必须共享同一块盘，否则分片/预览打到别的 Pod 就找不到文件
+        - name: webook-data
+          hostPath:
+            path: /data/webook
+            type: DirectoryOrCreate
 
 

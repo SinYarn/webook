@@ -15,6 +15,9 @@ type UserFile = {
     FolderFlag: number
     FileSizeDesc: string
     Utime: number
+    FileSize?: number
+    Pending?: boolean
+    RowKey?: string
 }
 
 type FileBreadcrumb = {

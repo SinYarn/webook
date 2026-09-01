@@ -17,12 +17,12 @@ const labels: Record<string, {text: string; color: string}> = {
     file: {text: "FILE", color: "#434343"},
 };
 
-function extension(filename: string): string {
+export function extension(filename: string): string {
     const index = filename.lastIndexOf(".");
     return index < 0 ? "" : filename.slice(index + 1).toLowerCase();
 }
 
-function fileKind(file: UserFile): string {
+export function fileKind(file: UserFile): string {
     if (file.FolderFlag == 1) {
         return "folder";
     }
@@ -33,7 +33,7 @@ function fileKind(file: UserFile): string {
     if (["mp4", "webm", "mov", "mkv", "avi"].includes(ext)) {
         return "video";
     }
-    if (["mp3", "wav", "flac", "aac", "m4a"].includes(ext)) {
+    if (["mp3", "wav", "flac", "aac", "m4a", "ogg", "oga", "opus"].includes(ext)) {
         return "audio";
     }
     if (ext == "pdf") {
@@ -58,6 +58,18 @@ function fileKind(file: UserFile): string {
         return "text";
     }
     return "file";
+}
+
+export function canPreview(row: UserFile): boolean {
+    if (row.FolderFlag == 1 || row.Pending || !row.Id) {
+        return false;
+    }
+    const kind = fileKind(row);
+    if (kind == "image" || kind == "video" || kind == "audio" || kind == "pdf") {
+        return true;
+    }
+    const ext = extension(row.Filename);
+    return ext == "md" || ext == "txt";
 }
 
 function imageMime(filename: string): string {
@@ -92,7 +104,7 @@ function FileThumb({row = {
 
     useEffect(() => {
         setPreview("");
-        if (kind != "image") {
+        if (kind != "image" || !row.Id) {
             return;
         }
         let objectUrl = "";

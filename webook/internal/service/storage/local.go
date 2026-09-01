@@ -12,6 +12,7 @@ import (
 	"unicode"
 )
 
+// LocalEngine 本地磁盘实现。root=成文件，chunkRoot=未合并分片。
 type LocalEngine struct {
 	root      string
 	chunkRoot string

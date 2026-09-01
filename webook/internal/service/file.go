@@ -21,6 +21,8 @@ var (
 	ErrEmptyFolderName      = errors.New("文件夹名不能为空")
 )
 
+// FileService 云盘用例：目录、上传、秒传、分片合并、删除回收。
+// 不碰 HTTP；磁盘走 storage.Engine，表走 repository。
 type FileService struct {
 	repo   *repository.FileRepository
 	engine storage.Engine
@@ -33,6 +35,7 @@ func NewFileService(repo *repository.FileRepository, engine storage.Engine) *Fil
 	}
 }
 
+// List parentId=0 为虚拟根。
 func (svc *FileService) List(ctx context.Context, uid int64, parentId int64) ([]domain.UserFile, error) {
 	if err := svc.checkParent(ctx, uid, parentId); err != nil {
 		return nil, err
@@ -61,23 +64,31 @@ func (svc *FileService) Breadcrumbs(ctx context.Context, uid int64, id int64) ([
 	return chain, nil
 }
 
-func (svc *FileService) CreateFolder(ctx context.Context, uid int64, parentId int64, name string) error {
+// CreateFolder 同名目录复用已有节点，方便按路径建树。
+func (svc *FileService) CreateFolder(ctx context.Context, uid int64, parentId int64, name string) (domain.UserFile, error) {
 	if name == "" {
-		return ErrEmptyFolderName
+		return domain.UserFile{}, ErrEmptyFolderName
 	}
 	if err := svc.checkParent(ctx, uid, parentId); err != nil {
-		return err
+		return domain.UserFile{}, err
 	}
-	_, err := svc.repo.CreateUserFile(ctx, domain.UserFile{
+	exist, err := svc.repo.FindFolder(ctx, uid, parentId, name)
+	if err == nil {
+		return exist, nil
+	}
+	if err != repository.ErrFileNotFound {
+		return domain.UserFile{}, err
+	}
+	return svc.repo.CreateUserFile(ctx, domain.UserFile{
 		UserId:     uid,
 		ParentId:   parentId,
 		RealFileId: 0,
 		Filename:   name,
 		FolderFlag: domain.FolderYes,
 	})
-	return err
 }
 
+// Upload 普通上传：落盘、算 MD5、复用已有 File、再挂一条 UserFile。
 func (svc *FileService) Upload(ctx context.Context, uid int64, parentId int64, filename string, r io.Reader, size int64) error {
 	if err := svc.checkParent(ctx, uid, parentId); err != nil {
 		return err
@@ -105,6 +116,7 @@ func (svc *FileService) Upload(ctx context.Context, uid int64, parentId int64, f
 	return err
 }
 
+// SecUpload 秒传：identifier 已有物理文件则只插用户节点，不写盘。
 func (svc *FileService) SecUpload(ctx context.Context, uid int64, parentId int64, filename string, identifier string) error {
 	if identifier == "" {
 		return ErrSecUploadMiss
@@ -130,6 +142,7 @@ func (svc *FileService) SecUpload(ctx context.Context, uid int64, parentId int64
 	return err
 }
 
+// ChunkUpload 保存一片。已存在的片直接跳过（断点续传）。
 func (svc *FileService) ChunkUpload(ctx context.Context, uid int64, identifier string, filename string,
 	chunkNumber int, totalChunks int, r io.Reader, size int64) (int, error) {
 	if identifier == "" || chunkNumber <= 0 || totalChunks <= 0 {
@@ -138,9 +151,6 @@ func (svc *FileService) ChunkUpload(ctx context.Context, uid int64, identifier s
 	existing, err := svc.repo.FindChunk(ctx, uid, identifier, chunkNumber)
 	if err == nil && existing.Id > 0 {
 		return svc.mergeFlag(ctx, uid, identifier, totalChunks)
-	}
-	if err != nil && err != repository.ErrFileNotFound {
-		return 0, err
 	}
 	if err != nil && err != repository.ErrFileNotFound {
 		return 0, err
@@ -163,6 +173,7 @@ func (svc *FileService) ChunkUpload(ctx context.Context, uid int64, identifier s
 	return svc.mergeFlag(ctx, uid, identifier, totalChunks)
 }
 
+// UploadedChunks 返回已落盘的片号，前端用来跳过。
 func (svc *FileService) UploadedChunks(ctx context.Context, uid int64, identifier string) ([]int, error) {
 	list, err := svc.repo.ListChunks(ctx, uid, identifier)
 	if err != nil {
@@ -175,6 +186,7 @@ func (svc *FileService) UploadedChunks(ctx context.Context, uid int64, identifie
 	return nums, nil
 }
 
+// Merge 按片号 1..n 拼文件，删分片记录，再走秒传复用。
 func (svc *FileService) Merge(ctx context.Context, uid int64, parentId int64, filename string, identifier string, totalSize int64) error {
 	if err := svc.checkParent(ctx, uid, parentId); err != nil {
 		return err
@@ -214,6 +226,7 @@ func (svc *FileService) Merge(ctx context.Context, uid int64, parentId int64, fi
 	return err
 }
 
+// FileForDownload 校验归属后返回展示名和物理路径。web 层负责 Range / MIME。
 func (svc *FileService) FileForDownload(ctx context.Context, uid int64, id int64) (string, string, error) {
 	uf, err := svc.repo.FindUserFile(ctx, uid, id)
 	if err != nil {
@@ -233,6 +246,7 @@ func (svc *FileService) CopyFile(ctx context.Context, realPath string, w io.Writ
 	return svc.engine.Read(ctx, realPath, w)
 }
 
+// Delete 递归删目录树；物理文件引用计数为 0 才 gc。
 func (svc *FileService) Delete(ctx context.Context, uid int64, ids []int64) error {
 	for _, id := range ids {
 		nodes, err := svc.collect(ctx, uid, id)
@@ -282,6 +296,7 @@ func (svc *FileService) collect(ctx context.Context, uid int64, id int64) ([]dom
 	return res, nil
 }
 
+// gcFile 没有 user_files 再引用时删盘 + 删 files 行。
 func (svc *FileService) gcFile(ctx context.Context, realFileId int64) error {
 	n, err := svc.repo.CountByRealFileId(ctx, realFileId)
 	if err != nil {
@@ -301,6 +316,7 @@ func (svc *FileService) gcFile(ctx context.Context, realFileId int64) error {
 	return svc.repo.DeleteFile(ctx, f.Id)
 }
 
+// saveOrReuseFile 按 MD5 复用已有 File，避免重复占盘。
 func (svc *FileService) saveOrReuseFile(ctx context.Context, _ int64, filename string, path string, size int64, identifier string) (domain.File, error) {
 	exist, err := svc.repo.FindFileByIdentifier(ctx, identifier)
 	if err == nil {

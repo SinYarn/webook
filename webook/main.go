@@ -106,10 +106,10 @@ func initWebServer() *gin.Engine {
 	server.Use(cors.New(cors.Config{
 		// AllowOrigins: []string{"http://localhost:3000"},
 		// AllowMethods: []string{"POST", "GET"},
-		AllowHeaders: []string{"Content-Type", "Authorization"},
+		AllowHeaders: []string{"Content-Type", "Authorization", "Range"},
 
 		// 允许正式请求，响应带的header, 加这个前端才能拿得到
-		ExposeHeaders: []string{"x-jwt-token"},
+		ExposeHeaders: []string{"x-jwt-token", "Content-Range", "Accept-Ranges", "Content-Length"},
 
 		// 是否允许带 cookie 之类的
 		AllowCredentials: true,
@@ -125,7 +125,8 @@ func initWebServer() *gin.Engine {
 				return false
 			}
 			ip := net.ParseIP(u.Hostname())
-			return ip != nil && (ip.IsPrivate() || ip.IsLoopback())
+			// Tailscale 用 100.64.0.0/10，不算 RFC1918，IsPrivate 会漏掉
+			return ip != nil && (ip.IsPrivate() || ip.IsLoopback() || isTailscaleIP(ip))
 		},
 		MaxAge: 12 * time.Hour,
 	}))
@@ -166,6 +167,7 @@ func initWebServer() *gin.Engine {
 		IgnorePaths("/users/signup").
 		IgnorePaths("/users/login").
 		IgnorePaths("/hello").
+		IgnorePaths("/files/raw"). // 预览走 ticket，媒体标签带不上 JWT
 		Build())
 
 	return server
@@ -184,9 +186,22 @@ func initUser(db *gorm.DB, redisClient redis.Cmdable) *web.UserHandler {
 }
 
 func initFile(db *gorm.DB) *web.FileHandler {
+	// web -> service -> repository -> dao
+	//                       \-> storage.Engine（本地盘）
 	fd := dao.NewFileDAO(db)
 	repo := repository.NewFileRepository(fd)
 	engine := storage.NewLocalEngine(config.Config.File.RootPath, config.Config.File.ChunkPath)
 	svc := service.NewFileService(repo, engine)
 	return web.NewFileHandler(svc)
+}
+
+// Tailscale 地址段：IPv4 CGNAT 100.64.0.0/10，IPv6 fd7a:115c:a1e0::/48
+func isTailscaleIP(ip net.IP) bool {
+	if ip4 := ip.To4(); ip4 != nil {
+		return ip4[0] == 100 && ip4[1] >= 64 && ip4[1] <= 127
+	}
+	return len(ip) == net.IPv6len &&
+		ip[0] == 0xfd && ip[1] == 0x7a &&
+		ip[2] == 0x11 && ip[3] == 0x5c &&
+		ip[4] == 0xa1 && ip[5] == 0xe0
 }

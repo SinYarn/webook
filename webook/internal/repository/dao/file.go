@@ -14,6 +14,7 @@ var (
 	ErrFileDuplicateIdentifier = errors.New("文件标识冲突")
 )
 
+// FileDAO 云盘三张表的 gorm 访问。只出现在 repository 里。
 type FileDAO struct {
 	db *gorm.DB
 }
@@ -80,6 +81,21 @@ func (dao *FileDAO) FindUserFileById(ctx context.Context, uid int64, id int64) (
 	return uf, err
 }
 
+// FindUserFileByName 同一父目录下按名字+类型查找，给建目录去重用。
+func (dao *FileDAO) FindUserFileByName(ctx context.Context, uid int64, parentId int64, name string, folderFlag int) (UserFile, error) {
+	var uf UserFile
+	err := dao.db.WithContext(ctx).
+		Where("user_id = ? AND parent_id = ? AND filename = ? AND folder_flag = ?", uid, parentId, name, folderFlag).
+		Limit(1).Find(&uf).Error
+	if err != nil {
+		return UserFile{}, err
+	}
+	if uf.Id == 0 {
+		return UserFile{}, ErrFileNotFound
+	}
+	return uf, nil
+}
+
 func (dao *FileDAO) ListUserFiles(ctx context.Context, uid int64, parentId int64) ([]UserFile, error) {
 	var list []UserFile
 	err := dao.db.WithContext(ctx).
@@ -136,7 +152,7 @@ func (dao *FileDAO) DeleteChunks(ctx context.Context, uid int64, identifier stri
 		Delete(&FileChunk{}).Error
 }
 
-// File 物理文件
+// File 物理文件表 files。Identifier 唯一。
 type File struct {
 	Id           int64 `gorm:"primarykey, autoIncrement"`
 	Filename     string
@@ -152,7 +168,7 @@ func (File) TableName() string {
 	return "files"
 }
 
-// UserFile 用户目录树
+// UserFile 用户目录表 user_files。ParentId=0 为根下节点。
 type UserFile struct {
 	Id           int64 `gorm:"primarykey, autoIncrement"`
 	UserId       int64 `gorm:"index:idx_user_parent"`
@@ -169,7 +185,7 @@ func (UserFile) TableName() string {
 	return "user_files"
 }
 
-// FileChunk 分片
+// FileChunk 分片表 file_chunks。expiration_time 过期后 List 不再返回。
 type FileChunk struct {
 	Id             int64 `gorm:"primarykey, autoIncrement"`
 	Identifier     string
