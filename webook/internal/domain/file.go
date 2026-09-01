@@ -8,7 +8,7 @@ type UserFile struct {
 	Id           int64
 	UserId       int64
 	ParentId     int64
-	RealFileId   int64  // 指向 files.id；文件夹为 0
+	RealFileId   int64 // 指向 files.id；文件夹为 0
 	Filename     string
 	FolderFlag   int
 	FileSizeDesc string
