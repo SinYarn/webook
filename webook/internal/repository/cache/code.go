@@ -10,15 +10,19 @@ import (
 )
 
 var (
-	// 编译器在编译的时候， 把 set_code 的代码放进来这个 luaSetCode变量里
-	//go:embed lua/set_code.lua
-	luaSetCode string
-	//go:embed lua/verify_code.lua
-	luaVerifyCode string
-
-	ErrCodeSendTooMany   = errors.New("发送太频繁")
-	ErrCodeVerifyTooMany = errors.New("发送太频繁")
+	ErrCodeSendTooMany        = errors.New("发送太频繁")
+	ErrCodeVerifyTooMany      = errors.New("发送太频繁")
+	ErrCodeVerifyTooManyTimes = errors.New("验证次数太多")
+	ErrUnknownForCode         = errors.New("我也不知发生什么了，反正是跟 code 有关")
 )
+
+// 编译器会在编译的时候，把 set_code 的代码放进来这个 luaSetCode 变量里
+
+//go:embed lua/set_code.lua
+var luaSetCode string
+
+//go:embed lua/verify_code.lua
+var luaVerifyCode string
 
 type CodeCache struct {
 	cmd redis.Cmdable

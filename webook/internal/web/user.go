@@ -14,13 +14,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const biz = "login"
+
 type UserHandler struct {
 	svc            *service.UserService
+	codeSvc        *service.CodeService
 	emailRexExp    *regexp.Regexp
 	passwordRexExp *regexp.Regexp
 }
 
-func NewUserHandler(svc *service.UserService) *UserHandler {
+func NewUserHandler(svc *service.UserService, codeSvc *service.CodeService) *UserHandler {
 	const (
 		// 正则表达式校验
 		emailRegexPattern = "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$"
@@ -35,6 +38,7 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 		svc:            svc,
 		emailRexExp:    emailExp,
 		passwordRexExp: passwordExp,
+		codeSvc:        codeSvc,
 	}
 }
 
@@ -57,6 +61,8 @@ func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug.POST("/edit", u.Edit)
 	// GET /users/profile
 	ug.GET("/profile", u.ProfileJWT)
+	ug.POST("/login_sms/code/send", u.SendLoginSMSCode)
+	ug.POST("/login_sms", u.LoginSMS)
 }
 
 func (u *UserHandler) SignUp(ctx *gin.Context) {
@@ -239,6 +245,111 @@ func (u *UserHandler) ProfileJWT(ctx *gin.Context) {
 
 func (u *UserHandler) Profile(ctx *gin.Context) {
 	ctx.String(http.StatusOK, "这是你的Profile")
+}
+
+// 发送验证码
+func (u *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
+	type Req struct {
+		Phone string `json:"phone"`
+	}
+	var req Req
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	// 是不是一个合法的手机号码
+	// 考虑正则表达式
+	if req.Phone == "" {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "输入有误",
+		})
+		return
+	}
+	err := u.codeSvc.Send(ctx, biz, req.Phone)
+	switch err {
+	case nil:
+		ctx.JSON(http.StatusOK, Result{
+			Msg: "发送成功",
+		})
+	case service.ErrCodeSendTooMany:
+		ctx.JSON(http.StatusOK, Result{
+			Msg: "发送太频繁，请稍后再试",
+		})
+	default:
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+	}
+}
+
+func (u *UserHandler) LoginSMS(ctx *gin.Context) {
+	type Req struct {
+		Phone string `json:"phone"`
+		Code  string `json:"code"`
+	}
+	var req Req
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	// 这边，可以加上各种校验
+	ok, err := u.codeSvc.Verify(ctx, biz, req.Phone, req.Code)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "验证码有误",
+		})
+		return
+	}
+
+	// 我这个手机号，会不会是一个新用户呢？
+	// 这样子
+	user, err := u.svc.FindOrCreate(ctx, req.Phone)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+
+	// 这边要怎么办呢？
+	// 从哪来？
+	if err = u.setJWTToken(ctx, user.Id); err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, Result{
+		Msg: "验证码校验通过",
+	})
+}
+
+func (u *UserHandler) setJWTToken(ctx *gin.Context, uid int64) error {
+	claims := UserClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)),
+		},
+		Uid:       uid,
+		UserAgent: ctx.Request.UserAgent(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
+	tokenStr, err := token.SignedString([]byte("k6CswdUm75WKcbM68UQUuxVsHSpTCwgK"))
+	if err != nil {
+		return err
+	}
+	ctx.Header("x-jwt-token", tokenStr)
+	return nil
 }
 
 type UserClaims struct {

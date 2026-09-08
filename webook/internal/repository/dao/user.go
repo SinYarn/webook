@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"time"
 
@@ -11,8 +12,8 @@ import (
 )
 
 var (
-	ErrUserDuplicateEmail = errors.New("用户邮箱冲突")
-	ErrUserNotFound       = gorm.ErrRecordNotFound
+	ErrUserDuplicate = errors.New("邮箱或手机号冲突")
+	ErrUserNotFound  = gorm.ErrRecordNotFound
 )
 
 type UserDAO struct {
@@ -28,6 +29,12 @@ func NewUserDAO(db *gorm.DB) *UserDAO {
 func (dao *UserDAO) FindByEmail(ctx context.Context, email string) (User, error) {
 	var u User
 	err := dao.db.WithContext(ctx).Where("email = ?", email).First(&u).Error
+	return u, err
+}
+
+func (dao *UserDAO) FindByPhone(ctx context.Context, phone string) (User, error) {
+	var u User
+	err := dao.db.WithContext(ctx).Where("phone = ?", phone).First(&u).Error
 	return u, err
 }
 
@@ -50,7 +57,7 @@ func (dao *UserDAO) Insert(ctx context.Context, u User) error {
 		const uniqueConflictsErrNo uint16 = 1062
 		if mysqlErr.Number == uniqueConflictsErrNo {
 			// 邮箱冲突
-			return ErrUserDuplicateEmail
+			return ErrUserDuplicate
 		}
 	}
 	return err
@@ -59,8 +66,17 @@ func (dao *UserDAO) Insert(ctx context.Context, u User) error {
 // User 直接对应数据库结构
 // 数据库层面的	entity model PO (persistent object)
 type User struct {
-	Id       int64  `gorm:"primarykey, autoIncrement"`
-	Email    string `gorm:"unique"`
+	Id int64 `gorm:"primarykey, autoIncrement"`
+
+	// 唯一索引允许有多个空值
+	// 但是不能有多个 ""
+	Email sql.NullString `gorm:"unique"`
+	Phone sql.NullString `gorm:"unique"`
+
+	// 最大问题就是，你要解引用
+	// 你要判空
+	//Phone *string
+
 	Password string
 
 	// 创建时间, 毫秒数

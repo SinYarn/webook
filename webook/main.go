@@ -1,19 +1,18 @@
 package main
 
 import (
-	"Clould/webook/config"
 	"Clould/webook/internal/repository"
 	"Clould/webook/internal/repository/cache"
-	dao "Clould/webook/internal/repository/dao"
+	"Clould/webook/internal/repository/dao"
 	"Clould/webook/internal/service"
 	"Clould/webook/internal/web"
 	"Clould/webook/internal/web/middleware"
+	"Clould/webook/ioc"
 	"Clould/webook/pkg/ginx/middlewares/ratelimit"
 	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
 	"github.com/gin-contrib/cors"
@@ -21,52 +20,24 @@ import (
 )
 
 func main() {
-	// 1. 初始化数据库
-	db := initDB()
-
-	rc := redis.NewClient(&redis.Options{
-		Addr:     config.Config.Redis.Addr,
-		Password: "",
-		DB:       1,
-	})
+	//db := initDB()
+	//rdb := initRedis()
 	// 2. 初始化web服务
-	server := initWebServer()
+	//server := initWebServer(rc)
 	// 3. 初始化 DDD分层结构
-	u := initUser(db, rc)
+	//u := initUser(db, rc)
 	// 4. 注册分组路由
-	u.RegisterRoutes(server)
+	//u.RegisterRoutes(server)
 
-	/*	server.GET("/hello", func(ctx *gin.Context) {
-		ctx.String(http.StatusOK, "hello start Kubernetes!")
-	})*/
-
+	server := InitWebServer()
 	// 监听并在 0.0.0.0:8080 上启动服务
 	//server := gin.Default()
 	server.Run(":8080")
-}
 
-// 1. 初始化数据库
-func initDB() *gorm.DB {
-	// 链接mysql数据库(docker中)
-	db, err := gorm.Open(mysql.Open(config.Config.DB.DSN))
-	if err != nil {
-		// panic: go goroutine 结束
-		// 初始化错误, 应用不启动
-		panic(err)
-	}
-
-	// 数据库建表
-	err = dao.InitTable(db)
-	if err != nil {
-		// 建表不成功, 终止应用
-		panic(err)
-	}
-
-	return db
 }
 
 // 2. 初始化web服务
-func initWebServer() *gin.Engine {
+func initWebServer(rdb redis.Cmdable) *gin.Engine {
 	server := gin.Default()
 
 	// middleware中间件, 在request之前执行
@@ -77,15 +48,9 @@ func initWebServer() *gin.Engine {
 	server.Use(func(ctx *gin.Context) {
 		println("这是第二个 middleware")
 	})
-	// 初始化redis IP 限流
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     config.Config.Redis.Addr,
-		Password: "",
-		DB:       1,
-	})
 
 	// 使用限流插件 1秒100个请求
-	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 100).Build())
+	server.Use(ratelimit.NewBuilder(rdb, time.Second, 100).Build())
 
 	/*	// 初始化redis
 		redisClient := redis.NewClient(&redis.Options{
@@ -93,10 +58,11 @@ func initWebServer() *gin.Engine {
 			Password: "",
 			DB:       1,
 		})
-
 		// 使用限流插件 1秒100个请求
-		server.Use(ratelimit.NewBuilder(redisClient, time.Second, 100).Build())
+		server.Use(ratelimit.NewBuilder(rdb, time.Second, 100).Build())
+
 	*/
+
 	// middleware中间件: 解决跨域请求的问题
 	server.Use(cors.New(cors.Config{
 		// AllowOrigins: []string{"http://localhost:3000"},
@@ -152,6 +118,8 @@ func initWebServer() *gin.Engine {
 	server.Use(middleware.NewLoginJWTMiddlewareBuilder().
 		IgnorePaths("/users/signup").
 		IgnorePaths("/users/login").
+		IgnorePaths("/users/login_sms/code/send").
+		IgnorePaths("/users/login_sms").
 		IgnorePaths("/hello").
 		Build())
 
@@ -159,13 +127,18 @@ func initWebServer() *gin.Engine {
 }
 
 // 3. 初始化 DDD分层结构
-func initUser(db *gorm.DB, redisClient redis.Cmdable) *web.UserHandler {
+func initUser(db *gorm.DB, rdb redis.Cmdable) *web.UserHandler {
 	// DDD架构
 	ud := dao.NewUserDAO(db)
-	uc := cache.NewUserCache(redisClient)
+	uc := cache.NewUserCache(rdb)
 	repo := repository.NewUserRepository(ud, uc)
 	svc := service.NewUserService(repo)
+	codeCache := cache.NewCodeCache(rdb)
+	codeRepo := repository.NewCodeRepository(codeCache)
 	// 预编译 正则表达式（邮箱、 密码匹配） -- 优化项目性能, 提高校验速度
-	u := web.NewUserHandler(svc)
+	smsSvc := ioc.InitSMSService()
+	codeSvc := service.NewCodeService(codeRepo, smsSvc)
+	u := web.NewUserHandler(svc, codeSvc)
+
 	return u
 }

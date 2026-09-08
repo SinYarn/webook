@@ -5,7 +5,10 @@ import (
 	"context"
 )
 
-var ErrCodeVerifyTooMany = cache.ErrCodeVerifyTooMany
+var (
+	ErrCodeSendTooMany        = cache.ErrCodeSendTooMany
+	ErrCodeVerifyTooManyTimes = cache.ErrCodeVerifyTooManyTimes
+)
 
 type CodeRepository struct {
 	cache *cache.CodeCache
@@ -15,6 +18,11 @@ func NewCodeRepository(c *cache.CodeCache) *CodeRepository {
 	return &CodeRepository{
 		cache: c,
 	}
+}
+
+func (c *CodeRepository) Store(ctx context.Context,
+	biz string, phone string, code string) error {
+	return c.cache.Set(ctx, biz, phone, code)
 }
 
 func (c *CodeRepository) Set(ctx context.Context, biz, phone, code string) error {
